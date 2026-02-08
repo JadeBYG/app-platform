@@ -1,36 +1,45 @@
 package com.jady.appplatform.config;
 
+import com.jady.appplatform.security.JwtAuthFilter;
+import com.jady.appplatform.security.JwtUtil;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
+@EnableMethodSecurity
 public class SecurityConfig {
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-                // 先关闭 CSRF，便于你后续调试 REST API（后面接 JWT 时会再系统处理）
-                .csrf(csrf -> csrf.disable())
+    SecurityFilterChain securityFilterChain(HttpSecurity http, JwtUtil jwtUtil) throws Exception {
 
-                // 授权规则：放行 Swagger / OpenAPI；其他请求需要认证
+        http
+                .csrf(csrf -> csrf.disable())
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
+                                "/api/auth/**",
+                                "/api/health",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
                                 "/swagger-ui.html",
-                                "/api/health"
+
+                                // ✅ Actuator 放行（本地调试用）
+                                "/actuator/health",
+                                "/actuator/info",
+                                "/actuator/metrics/**",
+                                "/actuator/prometheus"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
-
-                // 保留默认登录页（你看到的那个），用于保护其他路径
-                .formLogin(Customizer.withDefaults())
-
-                // 允许 logout（默认 /logout）
-                .logout(Customizer.withDefaults());
+                .addFilterBefore(
+                        new JwtAuthFilter(jwtUtil),
+                        UsernamePasswordAuthenticationFilter.class
+                );
 
         return http.build();
     }

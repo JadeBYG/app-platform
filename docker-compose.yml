@@ -12,5 +12,22 @@ services:
       - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+
+  app:
+    build: .
+    container_name: app-platform
+    depends_on:
+      - mysql
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/app_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: app
+      SPRING_DATASOURCE_PASSWORD: app123
+      SERVER_PORT: 8080
+      MANAGEMENT_PORT: 9090
+      APP_SECURITY_JWT_SECRET: change-me-to-a-long-random-secret-at-least-32-bytes!!
+    ports:
+      - "8080:8080"
+      - "9090:9090"
+
 volumes:
   mysql_data:

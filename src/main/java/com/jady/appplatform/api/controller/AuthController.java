@@ -62,7 +62,7 @@ public class AuthController {
             throw new UnauthorizedException(invalid);
         }
 
-        String token = jwtUtil.generateToken(user.getEmail(), user.getRole());
+        String token = jwtUtil.generateToken(user.getId(), user.getEmail(), user.getRole());
         return ApiResponse.success(token);
     }
 }

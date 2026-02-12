@@ -12,7 +12,7 @@ import java.util.Date;
 @Component
 public class JwtUtil {
 
-    public record JwtPrincipal(String email, String role) {}
+    public record JwtPrincipal(Long userId, String email, String role) {}
 
     private final byte[] keyBytes;
     private final long ttlMillis;
@@ -25,12 +25,13 @@ public class JwtUtil {
         this.ttlMillis = ttlSeconds * 1000L;
     }
 
-    public String generateToken(String email, String role) {
+    public String generateToken(Long userId, String email, String role) {
         Date now = new Date();
         Date exp = new Date(now.getTime() + ttlMillis);
 
         return Jwts.builder()
-                .setSubject(email)
+                .setSubject(String.valueOf(userId))
+                .claim("email", email)
                 .claim("role", role)
                 .setIssuedAt(now)
                 .setExpiration(exp)
@@ -45,8 +46,9 @@ public class JwtUtil {
                 .parseClaimsJws(token)
                 .getBody();
 
+        Long userId = Long.valueOf(claims.getSubject());
         String email = claims.getSubject();
         String role = claims.get("role", String.class);
-        return new JwtPrincipal(email, role);
+        return new JwtPrincipal(userId, email, role);
     }
 }

@@ -41,7 +41,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
                 var authentication =
                         new UsernamePasswordAuthenticationToken(
-                                principal.email(),
+                                principal,
                                 null,
                                 authorities
                         );
@@ -51,6 +51,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
             } catch (Exception e) {
                 // Token 无效，保持未登录状态
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType("application/json;charset=UTF-8");
+                response.getWriter().write("{\"code\":\"UNAUTHORIZED\",\"message\":\"Invalid or expired token\"}");
+                return;
             }
         }
 

@@ -2,11 +2,15 @@ package com.jady.appplatform.api.exception;
 
 import com.jady.appplatform.api.response.ApiResponse;
 import com.jady.appplatform.common.exception.ResourceNotFoundException;
-import org.springframework.dao.DataIntegrityViolationException;
 import com.jady.appplatform.common.exception.UnauthorizedException;
+
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.AccessDeniedException;
+
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -52,5 +56,17 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
     public ApiResponse<Void> handleUnauthorized(UnauthorizedException ex) {
         return ApiResponse.error("UNAUTHORIZED", ex.getMessage());
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ApiResponse<Void> handleAccessDenied(AccessDeniedException ex) {
+        return ApiResponse.error("FORBIDDEN", "Access is denied");
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiResponse<Void> handleNotReadable(HttpMessageNotReadableException ex) {
+        return ApiResponse.error("BAD_REQUEST", "Malformed JSON request");
     }
 }

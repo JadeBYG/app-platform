@@ -11,9 +11,9 @@ import jakarta.persistence.*;
         },
         indexes = {
                 @Index(name = "idx_app_status", columnList = "status"),
-                @Index(name = "idx_app_created_at", columnList = "createdAt"),
-                @Index(name = "idx_app_user_created_at", columnList = "user_id, createdAt"),
-                @Index(name = "idx_app_job_created_at", columnList = "job_id, createdAt")
+                @Index(name = "idx_app_created_at", columnList = "created_at"),
+                @Index(name = "idx_app_user_created_at", columnList = "user_id, created_at"),
+                @Index(name = "idx_app_job_created_at", columnList = "job_id, created_at")
         }
 )
 public class Application extends BaseEntity {

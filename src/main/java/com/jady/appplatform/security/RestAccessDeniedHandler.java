@@ -7,12 +7,18 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.web.access.AccessDeniedHandler;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 
+@Component
 public class RestAccessDeniedHandler implements AccessDeniedHandler {
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper om;
+
+    public RestAccessDeniedHandler(ObjectMapper om) {
+        this.om = om;
+    }
 
     @Override
     public void handle(
@@ -22,9 +28,10 @@ public class RestAccessDeniedHandler implements AccessDeniedHandler {
     ) throws IOException {
 
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.setContentType("application/json;charset=UTF-8");
 
-        ApiResponse<Void> body = ApiResponse.error("FORBIDDEN", "Access is denied");
-        response.getWriter().write(objectMapper.writeValueAsString(body));
+        response.getWriter().write(
+                om.writeValueAsString(ApiResponse.error("FORBIDDEN", "Insufficient permissions"))
+        );
     }
 }

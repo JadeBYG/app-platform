@@ -1,24 +1,26 @@
 package com.jady.appplatform.domain.entity;
 
+import com.jady.appplatform.domain.enums.UserRole;
 import jakarta.persistence.*;
 
 @Entity
 @Table(name = "users")
 public class User extends BaseEntity {
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String email; //unique primary key
 
     @Column(nullable = false)
     private String password;
 
-    @Column(nullable = false)
-    private String role; //admin/user
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 64)
+    private UserRole role; //admin/user
 
     protected User() {
     }
 
-    public User(String email, String password, String role) {
+    public User(String email, String password, UserRole role) {
         this.email = email;
         this.password = password;
         this.role = role;
@@ -32,7 +34,7 @@ public class User extends BaseEntity {
         return password;
     }
 
-    public String getRole() {
+    public UserRole getRole() {
         return role;
     }
 }

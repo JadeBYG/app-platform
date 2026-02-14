@@ -1,5 +1,6 @@
 package com.jady.appplatform.security;
 
+import com.jady.appplatform.domain.enums.UserRole;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -25,14 +26,14 @@ public class JwtUtil {
         this.ttlMillis = ttlSeconds * 1000L;
     }
 
-    public String generateToken(Long userId, String email, String role) {
+    public String generateToken(Long userId, String email, UserRole role) {
         Date now = new Date();
         Date exp = new Date(now.getTime() + ttlMillis);
 
         return Jwts.builder()
                 .setSubject(String.valueOf(userId))
                 .claim("email", email)
-                .claim("role", role)
+                .claim("role", role.name())
                 .setIssuedAt(now)
                 .setExpiration(exp)
                 .signWith(Keys.hmacShaKeyFor(keyBytes))
@@ -47,7 +48,7 @@ public class JwtUtil {
                 .getBody();
 
         Long userId = Long.valueOf(claims.getSubject());
-        String email = claims.getSubject();
+        String email = claims.get("email", String.class);
         String role = claims.get("role", String.class);
         return new JwtPrincipal(userId, email, role);
     }

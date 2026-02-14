@@ -29,33 +29,35 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         String auth = request.getHeader("Authorization");
 
-        if (auth != null && auth.startsWith("Bearer ")) {
-            String token = auth.substring(7);
+        // 1) 没有带 token：当作匿名用户，交给后续 Spring Security 决定要不要拦截
+        if (auth == null || !auth.startsWith("Bearer ")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
-            try {
-                JwtUtil.JwtPrincipal principal = jwtUtil.parse(token);
+        String token = auth.substring(7);
 
-                var authorities = List.of(
-                        new SimpleGrantedAuthority("ROLE_" + principal.role())
-                );
+        try {
+            // 2) 解析 token
+            JwtUtil.JwtPrincipal principal = jwtUtil.parse(token);
 
-                var authentication =
-                        new UsernamePasswordAuthenticationToken(
-                                principal,
-                                null,
-                                authorities
-                        );
+            // 3) 构造 authorities：ROLE_USER / ROLE_EMPLOYER / ROLE_ADMIN
+            var authorities = List.of(
+                    new SimpleGrantedAuthority("ROLE_" + principal.role())
+            );
 
-                SecurityContextHolder.getContext()
-                        .setAuthentication(authentication);
+            // 4) 把 Authentication 放进 SecurityContext
+            var authentication = new UsernamePasswordAuthenticationToken(
+                    principal,
+                    null,
+                    authorities
+            );
 
-            } catch (Exception e) {
-                // Token 无效，保持未登录状态
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.setContentType("application/json;charset=UTF-8");
-                response.getWriter().write("{\"code\":\"UNAUTHORIZED\",\"message\":\"Invalid or expired token\"}");
-                return;
-            }
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        } catch (Exception e) {
+            // 5) token 无效：清空上下文，当作未登录继续走
+            SecurityContextHolder.clearContext();
         }
 
         filterChain.doFilter(request, response);

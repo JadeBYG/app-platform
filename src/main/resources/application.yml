@@ -30,7 +30,7 @@ management:
 
 app:
   employer:
-    invitedCode: ${APP_EMPLOYER_INVITE_CODE:change-me}
+    inviteCode: ${APP_EMPLOYER_INVITE_CODE:change-me}
   security:
     jwt:
       secret: ${APP_SECURITY_JWT_SECRET:change-me-to-a-long-random-secret-at-least-32-bytes!!}

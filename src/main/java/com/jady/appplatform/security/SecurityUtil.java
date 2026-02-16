@@ -16,4 +16,12 @@ public class SecurityUtil {
         if (p == null) throw new IllegalStateException("No authenticated principal");
         return p.userId();
     }
+
+    public static String currentRole() {
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (principal instanceof JwtUtil.JwtPrincipal p) {
+            return p.role();
+        }
+        throw new IllegalStateException("No authenticated principal");
+    }
 }

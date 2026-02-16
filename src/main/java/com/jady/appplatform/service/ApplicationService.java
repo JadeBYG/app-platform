@@ -2,12 +2,13 @@ package com.jady.appplatform.service;
 
 import com.jady.appplatform.common.exception.ResourceNotFoundException;
 import com.jady.appplatform.domain.entity.Application;
-import com.jady.appplatform.domain.entity.ApplicationTask;
 import com.jady.appplatform.domain.entity.Job;
 import com.jady.appplatform.domain.entity.User;
 import com.jady.appplatform.repository.ApplicationRepository;
 import com.jady.appplatform.repository.JobRepository;
 import com.jady.appplatform.repository.UserRepository;
+import jakarta.persistence.EntityManager;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,15 +19,20 @@ public class ApplicationService {
     private final UserRepository userRepository;
     private final JobRepository jobRepository;
     private final ApplicationTaskService taskService;
+    private final EntityManager entityManager;
 
-    public ApplicationService(ApplicationRepository applicationRepository,
-                              UserRepository userRepository,
-                              JobRepository jobRepository,
-                              ApplicationTaskService taskService) {
+    public ApplicationService(
+            ApplicationRepository applicationRepository,
+            UserRepository userRepository,
+            JobRepository jobRepository,
+            ApplicationTaskService taskService,
+            EntityManager entityManager
+    ) {
         this.applicationRepository = applicationRepository;
         this.userRepository = userRepository;
         this.jobRepository = jobRepository;
         this.taskService = taskService;
+        this.entityManager = entityManager;
     }
 
     /**
@@ -34,14 +40,13 @@ public class ApplicationService {
      */
     @Transactional
     public Application createApplication(String requestId, Long userId, Long jobId) {
-        Application result;
+
         // 1) 幂等：先查
         var existing = applicationRepository.findByRequestId(requestId);
         if (existing.isPresent()) {
-            result = existing.get();
-            // 即使是幂等命中，也保证有 task（taskService 内部也是幂等）
-            taskService.createTaskIfAbsent(result.getId());
-            return result;
+            Application app = existing.get();
+            taskService.createTaskIfAbsent(app.getId());
+            return app;
         }
 
         // 2) 校验关联资源存在
@@ -51,23 +56,23 @@ public class ApplicationService {
         Job job = jobRepository.findById(jobId)
                 .orElseThrow(() -> new ResourceNotFoundException("Job not found: " + jobId));
 
-        // 3) 创建并保存
+        // 3) 创建并保存（并发下可能撞 request_id 唯一键）
         try {
             Application app = new Application(requestId, user, job);
-            result = applicationRepository.save(app);
+            Application saved = applicationRepository.saveAndFlush(app);
+            taskService.createTaskIfAbsent(saved.getId());
+            return saved;
 
-        } catch (Exception ex) {
-            // 2) 并发下唯一约束兜底
-            var retry = applicationRepository.findByRequestId(requestId);
-            if (retry.isPresent()) {
-                result = retry.get();
-            } else {
-                throw ex;
-            }
+        } catch (DataIntegrityViolationException ex) {
+            // key: DB constraints exception, clear persistence context
+            entityManager.clear();
+
+            // 4) 并发兜底：另一请求已插入成功 → 再查一次返回同一条
+            var retry = applicationRepository.findByRequestId(requestId)
+                    .orElseThrow(() -> ex);
+
+            taskService.createTaskIfAbsent(retry.getId());
+            return retry;
         }
-
-        // 🔥 新增：创建异步任务（幂等）
-        taskService.createTaskIfAbsent(result.getId());
-        return result;
     }
 }

@@ -9,17 +9,10 @@ public class CreateApplicationRequest {
     private String requestId;
 
     @NotNull
-    private Long userId;
-
-    @NotNull
     private Long jobId;
 
     public String getRequestId() {
         return requestId;
-    }
-
-    public Long getUserId() {
-        return userId;
     }
 
     public Long getJobId() {
@@ -28,10 +21,6 @@ public class CreateApplicationRequest {
 
     public void setRequestId(String requestId) {
         this.requestId = requestId;
-    }
-
-    public void setUserId(Long userId) {
-        this.userId = userId;
     }
 
     public void setJobId(Long jobId) {

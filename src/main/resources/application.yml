@@ -35,3 +35,8 @@ app:
     jwt:
       secret: ${APP_SECURITY_JWT_SECRET:change-me-to-a-long-random-secret-at-least-32-bytes!!}
       ttlSeconds: ${APP_SECURITY_JWT_TTLSECONDS:86400}
+
+logging:
+  level:
+    com.jady.appplatform: INFO
+    org.hibernate.SQL: WARN

@@ -24,7 +24,7 @@ public class OpenApiConfig {
                                         .bearerFormat("JWT")
                         )
                 )
-                // 全局告诉 Swagger：默认请求可以带 bearerAuth（你也可以只对部分接口加）
+                // 全局告诉 Swagger：默认请求可以带 bearerAuth
                 .addSecurityItem(new SecurityRequirement().addList(SECURITY_SCHEME_NAME));
     }
 }

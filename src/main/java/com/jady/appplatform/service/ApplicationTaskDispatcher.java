@@ -1,6 +1,6 @@
 package com.jady.appplatform.service;
 
-import com.jady.appplatform.domain.entity.ApplicationTask;
+import com.jady.appplatform.service.dto.ClaimedTask;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -9,6 +9,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.InetAddress;
 import java.util.List;
@@ -16,6 +18,7 @@ import java.util.List;
 @Component
 @EnableScheduling
 public class ApplicationTaskDispatcher {
+    private static final Logger log = LoggerFactory.getLogger(ApplicationTaskDispatcher.class);
 
     private final ApplicationTaskClaimService claimService;
     private final ApplicationTaskService taskService;
@@ -62,21 +65,39 @@ public class ApplicationTaskDispatcher {
     public void dispatch() {
         dispatchTick.increment();
 
-        List<ApplicationTask> tasks = claimService.claimRunnableTasks(10, workerId);
+        List<ClaimedTask> tasks = claimService.claimRunnableTasks(10, workerId);
         claimBatchSize.record(tasks.size());
+        if (!tasks.isEmpty()) {
+            log.info("task_dispatch_claimed workerId={} batchSize={}", workerId, tasks.size());
+        }
 
-        for (ApplicationTask task : tasks) {
+        for (ClaimedTask task : tasks) {
             executor.submit(() -> {
+                long startedAt = System.currentTimeMillis();
                 try {
-                    processor.process(task.getApplicationId());
-                    taskService.markSuccess(task.getId());
+                    log.info("task_process_start taskId={} applicationId={} workerId={}",
+                            task.taskId(), task.applicationId(), workerId);
+                    processor.process(task.applicationId());
+                    taskService.markSuccess(task.taskId());
                     taskSuccess.increment();
+                    log.info("task_process_success taskId={} applicationId={} workerId={} durationMs={}",
+                            task.taskId(), task.applicationId(), workerId, System.currentTimeMillis() - startedAt);
                 } catch (Exception e) {
-                    taskService.markFailureAndScheduleRetry(task.getId(), e.getMessage());
+                    taskService.markFailureAndScheduleRetry(task.taskId(), e.getMessage());
                     taskFailed.increment();
+                    log.warn("task_process_failure taskId={} applicationId={} workerId={} durationMs={} error={}",
+                            task.taskId(), task.applicationId(), workerId,
+                            System.currentTimeMillis() - startedAt, sanitizeError(e.getMessage()));
                 }
             });
         }
+    }
+
+    private String sanitizeError(String message) {
+        if (message == null || message.isBlank()) {
+            return "unknown";
+        }
+        return message.length() > 300 ? message.substring(0, 300) : message;
     }
 
     private String resolveWorkerId(Environment env) {

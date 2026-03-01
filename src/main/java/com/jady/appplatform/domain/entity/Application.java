@@ -48,4 +48,30 @@ public class Application extends BaseEntity {
         this.status = ApplicationStatus.PENDING;
         this.retryCount = 0;
     }
+
+    public ApplicationStatus getStatus() {
+        return status;
+    }
+
+    public int getRetryCount() {
+        return retryCount;
+    }
+
+    public void markProcessing() {
+        this.status = ApplicationStatus.PROCESSING;
+    }
+
+    public void markSuccess() {
+        this.status = ApplicationStatus.SUCCESS;
+    }
+
+    public void markPendingForRetry() {
+        this.status = ApplicationStatus.PENDING;
+        this.retryCount += 1;
+    }
+
+    public void markFailed() {
+        this.status = ApplicationStatus.FAILED;
+        this.retryCount += 1;
+    }
 }

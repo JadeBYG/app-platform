@@ -3,12 +3,15 @@ package com.jady.appplatform.service;
 import com.jady.appplatform.repository.ApplicationTaskRepository;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 @Component
 public class ApplicationTaskReaper {
+    private static final Logger log = LoggerFactory.getLogger(ApplicationTaskReaper.class);
 
     private final ApplicationTaskRepository taskRepository;
     private final Counter reclaimedTotal;
@@ -25,7 +28,7 @@ public class ApplicationTaskReaper {
         int released = taskRepository.releaseStuckTasks(30); // 超过 30 秒算卡死
         if (released > 0) {
             reclaimedTotal.increment(released);
-            System.out.println("Reclaimed stuck tasks: " + released);
+            log.warn("task_reclaimed_stuck released={}", released);
         }
     }
 }
